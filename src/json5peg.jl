@@ -1,5 +1,8 @@
-module
+module json5peg
 using PEG
+
+export json5_parse
+json5_parse(json5text) = parse_whole(JSON5Text, json5text)
 
 @rule JSON5Text =
     nodata & JSON5Value & nodata |> x -> x[2]
@@ -28,10 +31,10 @@ using PEG
     MultiLineComment
 
 @rule SingleLineComment =
-"//" & r"."[*] & LineTerminatorSequence |> x -> nothing
+    "//" & r"."[*] & LineTerminatorSequence |> x -> nothing
 
 @rule MultiLineComment =
-       r"\/\*.*?\*\/" |> x -> nothing
+   r"\/\*.*?\*\/" |> x -> nothing
 
 @rule JSON5Value =
     JSON5Null,
@@ -59,7 +62,11 @@ using PEG
 "[" & nodata & (JSON5Value & nodata)[*] & "]" |> x -> x[3]
 
 @rule JSON5Object =
-"{" & nodata & (JSON5Member & nodata)[*] & "}" |> x -> x[3]
+"{" & nodata "}" |> x -> Dict(),
+"{" & nodata & JSON5MemberList & nodata & r","? & nodata & "}" |> x -> x[3]
+
+@rule JSON5MemberList =
+    JSON5Member & (nodata & r"," & nodata & JSON5Member)[*] |> x -> Dict(x[1], x[3])
 
 @rule JSON5DoubleString =
     "\"" & JSON5DoubleStringCharacter[*] & "\"" |> x -> join(x[2])
@@ -102,5 +109,32 @@ using PEG
     r"[^\"]" |> x -> x[1]
 
 @rule JSON5Member =
-    JSON5String & nodata & ":" & nodata & JSON5Value |> x -> (x[1], x[5])
+    JSON5MemberName & nodata & ":" & nodata & JSON5Value |> x -> (x[1], x[5])
+
+@rule JSON5MemberName =
+    JSON5Identifier,
+    JSON5String
+
+@rule JSON5Identifier =
+    JSON5IdentifierStart & JSON5IdentifierPart[*] |> x -> join(x)
+
+@rule JSON5IdentifierStart =
+    UnicodeLetter,
+    "$",
+    "_",
+    "\\" & JSON5UnicodeEscapeSequence |> x -> x[2]
+
+@rule JSON5IdentifierPart =
+    JSON5IdentifierStart,
+    UnicodeCombiningMark,
+    UnicodeDigit,
+    UnicodeConnectorPunctuation,
+    "\\u200C",
+    "\\u200D"
+
+@rule JSON5UnicodeEscapeSequence =
+    "\\u" & [UnicodeHexDigit[*]] |> x -> join(x[2])
+
+
+
 end

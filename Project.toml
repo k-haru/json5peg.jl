@@ -1,2 +1,8 @@
+name = "json5peg"
+uuid = "7e54626c-1cd2-41a9-aa63-aa7d3fde250f"
+authors = ["k-haru <haru@nips.ac.jp>"]
+version = "0.1.0"
+
 [deps]
 PEG = "12d937ae-5f68-53be-93c9-3a6f997a20a8"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
