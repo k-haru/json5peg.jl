@@ -8,7 +8,7 @@ json5_parse(json5text) = parse_whole(JSON5Text, json5text)
     nodata & JSON5Value & nodata |> x -> x[2]
 
 @rule nodata =
-    (WhiteSpace, LineTerminatorSequence, Comment)[*]
+    (WhiteSpace, LineTerminatorSequence, Comment)[*] |> x -> nothing
 
 @rule WhiteSpace =
     "\t",
@@ -48,8 +48,8 @@ json5_parse(json5text) = parse_whole(JSON5Text, json5text)
     "null" |> x -> nothing
 
 @rule JSON5Boolean =
-    "true" |> x -> true,
-    "false" |> x -> false
+    "true" |> Meta.parse,
+    "false" |> Meta.parse
 
 @rule JSON5Number =
     r"-?(0|[1-9]\d*)(\.\d+)?([Ee][+-]?\d+)?"p |> Meta.parse
@@ -58,15 +58,16 @@ json5_parse(json5text) = parse_whole(JSON5Text, json5text)
     JSON5DoubleString,
     JSON5SingleString
 
-@rule JSON5Array =
-"[" & nodata & (JSON5Value & nodata)[*] & "]" |> x -> x[3]
+@rule JSON5Array = 
+"[" & nodata & "]" |> x -> [],
+"[" & nodata & (JSON5Value & nodata[:?] & r"," & nodata[:?])[*] & nodata & "]" |> x -> [e[1] for e in x[3]]
 
 @rule JSON5Object =
-"{" & nodata "}" |> x -> Dict(),
-"{" & nodata & JSON5MemberList & nodata & r","? & nodata & "}" |> x -> x[3]
+"{" & nodata & "}" |> x -> Dict(),
+"{" & nodata & JSON5MemberList & nodata & r",?" & nodata & "}" |> x -> x[3]
 
 @rule JSON5MemberList =
-    JSON5Member & (nodata & r"," & nodata & JSON5Member)[*] |> x -> Dict(x[1], x[3])
+JSON5Member & (nodata & "," & nodata & JSON5Member)[*] |> x -> [x[1], [e[4] for e in x[2]]... ]
 
 @rule JSON5DoubleString =
     "\"" & JSON5DoubleStringCharacter[*] & "\"" |> x -> join(x[2])
@@ -109,31 +110,56 @@ json5_parse(json5text) = parse_whole(JSON5Text, json5text)
     r"[^\"]" |> x -> x[1]
 
 @rule JSON5Member =
-    JSON5MemberName & nodata & ":" & nodata & JSON5Value |> x -> (x[1], x[5])
+    JSON5MemberName & nodata & ":" & nodata & JSON5Value |> x -> x[1] => x[5]
 
 @rule JSON5MemberName =
     JSON5Identifier,
     JSON5String
 
 @rule JSON5Identifier =
-    JSON5IdentifierStart & JSON5IdentifierPart[*] |> x -> join(x)
+JSON5IdentifierStart & JSON5IdentifierPart[*] |> x -> vcat(x[1], x[2]) |> join
 
 @rule JSON5IdentifierStart =
     UnicodeLetter,
-    "$",
+    "\$",
     "_",
     "\\" & JSON5UnicodeEscapeSequence |> x -> x[2]
+
+@rule UnicodeLetter =
+    r"\p{Lu}",
+    r"\p{Ll}",
+    r"\p{Lt}",
+    r"\p{Lm}",
+    r"\p{Lo}",
+    r"\p{Nl}"
 
 @rule JSON5IdentifierPart =
     JSON5IdentifierStart,
     UnicodeCombiningMark,
     UnicodeDigit,
     UnicodeConnectorPunctuation,
-    "\\u200C",
-    "\\u200D"
+    "\u200C",
+    "\u200D"
+
+@rule UnicodeCombiningMark = r"\u0300-\u036F"
+
+@rule UnicodeDigit = r"\u0030-\u0039"
+
+@rule UnicodeConnectorPunctuation = 
+    r"\u005F",
+    r"\u203F",
+    r"\u2040",
+    r"\u2054",
+    r"\uFE33",
+    r"\uFE34",
+    r"\uFE4D",
+    r"\uFE4E",
+    r"\uFE4F",
+    r"\uFF3F"
+
 
 @rule JSON5UnicodeEscapeSequence =
-    "\\u" & [UnicodeHexDigit[*]] |> x -> join(x[2])
+    r"\u" & UnicodeHexDigit[*] |> x -> join(x[2])
 
 
 
