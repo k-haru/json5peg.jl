@@ -60,11 +60,11 @@ json5_parse(json5text) = parse_whole(JSON5Text, json5text)
 
 @rule JSON5Array = 
 "[" & nodata & "]" |> x -> [],
-"[" & nodata & (JSON5Value & nodata[:?] & r"," & nodata[:?])[*] & nodata & "]" |> x -> [e[1] for e in x[3]]
+"[" & nodata & (JSON5Value & r","[0:1] & nodata)[*]  & "]" |> x -> [e[1] for e in x[3]]
 
 @rule JSON5Object =
 "{" & nodata & "}" |> x -> Dict(),
-"{" & nodata & JSON5MemberList & nodata & r",?" & nodata & "}" |> x -> x[3]
+"{" & nodata & JSON5MemberList & nodata & r","[0:1] & nodata & "}" |> x -> x[3]
 
 @rule JSON5MemberList =
 JSON5Member & (nodata & "," & nodata & JSON5Member)[*] |> x -> [x[1], [e[4] for e in x[2]]... ]
