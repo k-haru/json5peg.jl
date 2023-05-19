@@ -143,7 +143,8 @@ JSON5IdentifierStart & JSON5IdentifierPart[*] |> x -> vcat(x[1], x[2]) |> join
 
 @rule UnicodeCombiningMark = r"\u0300-\u036F"
 
-@rule UnicodeDigit = r"\u0030-\u0039"
+@rule UnicodeDigit = 
+    r"\p{Nd}"
 
 @rule UnicodeConnectorPunctuation = 
     r"\u005F",
