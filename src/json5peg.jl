@@ -5,7 +5,7 @@ export json5_parse
 json5_parse(json5text) = parse_whole(JSON5Text, json5text)
 
 @rule JSON5Text =
-    nodata & JSON5Value & nodata |> x -> x[2]
+    nodata & JSON5Value & nodata |> x -> x[2] |> Dict
 
 @rule nodata =
     (WhiteSpace, LineTerminatorSequence, Comment)[*] |> x -> nothing
